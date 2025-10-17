@@ -226,10 +226,10 @@ app.post("/api/friend-requests", authenticateToken, async (req, res) => {
 
     // 检查是否已经发送过申请
     const existingRequest = friendRequests.find(
-      (req) =>
-        req.sender === user.id &&
-        req.receiver === receiverId &&
-        req.status === "pending"
+      (fr) =>
+        fr.sender === user.id &&
+        fr.receiver === receiverId &&
+        fr.status === "pending"
     );
 
     if (existingRequest) {
@@ -260,7 +260,7 @@ app.post("/api/friend-requests", authenticateToken, async (req, res) => {
 app.get("/api/friend-requests", authenticateToken, async (req, res) => {
   try {
     const userRequests = friendRequests.filter(
-      (req) => req.receiver === req.user.id && req.status === "pending"
+      (fr) => fr.receiver === req.user.id && fr.status === "pending"
     );
 
     res.json(userRequests);
@@ -276,9 +276,8 @@ app.put(
   async (req, res) => {
     try {
       const { requestId } = req.params;
-      const { status } = req.body;
 
-      const request = friendRequests.find((req) => req.id === requestId);
+      const request = friendRequests.find((fr) => fr.id === requestId);
       if (!request) {
         return res.status(404).json({ error: "Friend request not found" });
       }
@@ -289,25 +288,23 @@ app.put(
           .json({ error: "Not authorized to handle this request" });
       }
 
-      request.status = status;
+      request.status = "accepted";
 
-      if (status === "accepted") {
-        const user = users.get(req.user.username);
-        const friend = Array.from(users.values()).find(
-          (u) => u.id === request.sender
-        );
+      const user = users.get(req.user.username);
+      const friend = Array.from(users.values()).find(
+        (u) => u.id === request.sender
+      );
 
-        if (user && friend) {
-          if (!user.friends.includes(request.sender)) {
-            user.friends.push(request.sender);
-          }
-          if (!friend.friends.includes(user.id)) {
-            friend.friends.push(user.id);
-          }
+      if (user && friend) {
+        if (!user.friends.includes(request.sender)) {
+          user.friends.push(request.sender);
+        }
+        if (!friend.friends.includes(user.id)) {
+          friend.friends.push(user.id);
         }
       }
 
-      res.json({ message: `Friend request ${status} successfully` });
+      res.json({ message: "Friend request accepted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to handle friend request" });
     }
